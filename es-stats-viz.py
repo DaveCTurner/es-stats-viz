@@ -3,6 +3,9 @@ import squarify
 import argparse
 import svgwrite
 import os.path
+import re
+import colour
+import random
 
 parser = argparse.ArgumentParser(description='visualise diagnostics')
 parser.add_argument('diagnostics_dir', metavar='DIR', help='a path to an unpacked diagnostics dump')
@@ -21,9 +24,23 @@ with open(os.path.join(args.diagnostics_dir, 'nodes_stats.json')) as f:
       node['disk_bytes_by_path'][pathStats['path']] = pathStats['total_in_bytes']
     nodes[nodeId] = node
 
+def normalizeIndexName(indexName):
+  indexName = re.sub('[0-9]{6,}', '', indexName)
+  indexName = re.sub('[0-9]{4}\.[0-9]{2}\.[0-9]{2}', '', indexName)
+  return indexName
+
+random.seed(42)
+colors = {}
+
 with open(os.path.join(args.diagnostics_dir, 'indices_stats.json')) as f:
   stats = json.load(f)
   for indexName, indexStats in stats['indices'].items():
+    normalizedIndexName = normalizeIndexName(indexName)
+    if normalizedIndexName not in colors:
+      newColor = colour.Color(hue=random.random(), saturation=1, luminance=0.8)
+      colors[normalizedIndexName] = newColor.hex_l
+    color = colors[normalizedIndexName]
+
     for shardNum, shardStats in indexStats['shards'].items():
       for shardCopy in shardStats:
         nodeId = shardCopy['routing']['node']
@@ -49,7 +66,8 @@ with open(os.path.join(args.diagnostics_dir, 'indices_stats.json')) as f:
           'primary': primary,
           'store': storeSize,
           'translog': translogSize,
-          'segment_memory': segmentMemory
+          'segment_memory': segmentMemory,
+          'color': color
         }
 
 def makeDiskSizeTree():
@@ -64,10 +82,12 @@ def makeDiskSizeTree():
         shardComponents = []
         if shardDetails['store'] > 0:
           shardComponents.append({ 'label': 'store'
+                                 , 'color': shardDetails['color']
                                  , 'total': shardDetails['store']
                                  })
         if shardDetails['translog'] > 0:
           shardComponents.append({ 'label': 'translog'
+                                 , 'color': shardDetails['color']
                                  , 'total': shardDetails['translog']
                                  })
         pathNode['children'].append(
@@ -86,6 +106,7 @@ def makeSegmentMemoryTree():
         if shardDetails['segment_memory'] > 0:
           nodeNode['children'].append(
             { 'label': shardName
+            , 'color': shardDetails['color']
             , 'total': shardDetails['segment_memory']
             })
   return rootNode
@@ -162,7 +183,7 @@ def renderSvg(rootNode, filename):
       for child in node['children']:
         renderTree(child, label)
     else:
-      rect = d.rect((node['x'], node['y']), (node['dx'], node['dy']), stroke='black', fill='white')
+      rect = d.rect((node['x'], node['y']), (node['dx'], node['dy']), stroke='black', fill=node['color'])
       rect.set_desc(title=label)
       d.add(rect)
 
