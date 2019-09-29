@@ -67,7 +67,7 @@ def makeDiskSizeTree():
                                  , 'total': shardDetails['store']
                                  })
         if shardDetails['translog'] > 0:
-          shardComponents.append({ 'label': 'store'
+          shardComponents.append({ 'label': 'translog'
                                  , 'total': shardDetails['translog']
                                  })
         pathNode['children'].append(
