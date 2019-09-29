@@ -79,7 +79,7 @@ def makeDiskSizeTree():
 def makeSegmentMemoryTree():
   rootNode = {'label': 'cluster', 'children': [], 'x': 0, 'y': 0, 'dx': 1000, 'dy': 800}
   for nodeId, nodeContents in nodes.items():
-    nodeNode = {'label': nodeId, 'children': [], 'total': nodeContents['heap_max_in_bytes']}
+    nodeNode = {'label': nodes[nodeId]['name'], 'children': [], 'total': nodeContents['heap_max_in_bytes']}
     rootNode['children'].append(nodeNode)
     for path, pathContents in nodeContents['shards_by_path'].items():
       for shardName, shardDetails in pathContents.items():
@@ -152,14 +152,19 @@ def calculatePositions(node, padding_threshold, level=0):
 def renderSvg(rootNode, filename):
   d = svgwrite.Drawing(viewBox=("{} {} {} {}".format(rootNode['x'], rootNode['y'], rootNode['dx'], rootNode['dy'])))
 
-  def renderTree(node):
+  def renderTree(node, parentLabel=''):
+    label = parentLabel + ' -> ' + node['label']
     if 'children' in node:
       if 'total' in node:
-        d.add(d.rect((node['x'], node['y']), (node['dx'], node['dy']), stroke='none', fill='gainsboro'))
+        rect = d.rect((node['x'], node['y']), (node['dx'], node['dy']), stroke='none', fill='gainsboro')
+        rect.set_desc(title=label)
+        d.add(rect)
       for child in node['children']:
-        renderTree(child)
+        renderTree(child, label)
     else:
-      d.add(d.rect((node['x'], node['y']), (node['dx'], node['dy']), stroke='black', fill='white'))
+      rect = d.rect((node['x'], node['y']), (node['dx'], node['dy']), stroke='black', fill='white')
+      rect.set_desc(title=label)
+      d.add(rect)
 
   renderTree(rootNode)
   d.saveas(filename)
