@@ -55,7 +55,7 @@ with open(os.path.join(args.diagnostics_dir, 'indices_stats.json')) as f:
 def makeDiskSizeTree():
   rootNode = {'label': 'cluster', 'children': [], 'x': 0, 'y': 0, 'dx': 1000, 'dy': 800}
   for nodeId, nodeContents in nodes.items():
-    nodeNode = {'label': nodeId, 'children': []}
+    nodeNode = {'label': nodes[nodeId]['name'], 'children': []}
     rootNode['children'].append(nodeNode)
     for path, pathContents in nodeContents['shards_by_path'].items():
       pathNode = {'label': path, 'children': [], 'total': nodeContents['disk_bytes_by_path'][path]}
@@ -111,30 +111,43 @@ def calculatePositions(node, padding_threshold, level=0):
     dx = node['dx']
     dy = node['dy']
 
-    if 'childrenSize' in node:
-      childrenRatio = node['childrenSize'] / node['size']
-      if childrenRatio < 1:
-        if dx > dy:
-          dx = dx * childrenRatio
-        else:
-          dy = dy * childrenRatio
+    if level == 0:
 
-    node['children'].sort(reverse=True, key=lambda c: c['size'])
-    sizes = squarify.normalize_sizes(list(map(lambda c: c['size'], node['children'])), dx, dy)
-    if level < padding_threshold:
-      rects = squarify.padded_squarify(sizes, x, y, dx, dy)
+      node['children'].sort(key=lambda c: c['label'])
+
+      padding = 5
+      if padding * (len(node['children']) - 1) > dx:
+        padding = 0
+
+      dxMinusTotalPadding = dx - padding * (len(node['children']) - 1)
+      childX = x
+      for child in node['children']:
+        child['y']  = y
+        child['dy'] = dy
+        child['x']  = childX
+        child['dx'] = child['size'] * dxMinusTotalPadding / node['size']
+        childX += child['dx'] + padding
+        calculatePositions(child, padding_threshold, level+1)
+
     else:
-      rects = squarify.squarify(sizes, x, y, dx, dy)
-    for child, rect in zip(node['children'], rects):
-      for k, v in rect.items():
-        child[k] = v
-      calculatePositions(child, padding_threshold, level+1)
+      if 'childrenSize' in node:
+        childrenRatio = node['childrenSize'] / node['size']
+        if childrenRatio < 1:
+          if dx > dy:
+            dx = dx * childrenRatio
+          else:
+            dy = dy * childrenRatio
 
-def printTree(node, indent=0):
-  print('{}{} {} {} {} {}'.format('  ' * indent, node['label'], node['x'], node['y'], node['dx'], node['dy']))
-  if 'children' in node:
-    for child in node['children']:
-      printTree(child, indent + 1)
+      node['children'].sort(reverse=True, key=lambda c: c['size'])
+      sizes = squarify.normalize_sizes(list(map(lambda c: c['size'], node['children'])), dx, dy)
+      if level < padding_threshold:
+        rects = squarify.padded_squarify(sizes, x, y, dx, dy)
+      else:
+        rects = squarify.squarify(sizes, x, y, dx, dy)
+      for child, rect in zip(node['children'], rects):
+        for k, v in rect.items():
+          child[k] = v
+        calculatePositions(child, padding_threshold, level+1)
 
 def renderSvg(rootNode, filename):
   d = svgwrite.Drawing(viewBox=("{} {} {} {}".format(rootNode['x'], rootNode['y'], rootNode['dx'], rootNode['dy'])))
