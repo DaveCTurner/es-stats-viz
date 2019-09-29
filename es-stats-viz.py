@@ -73,42 +73,44 @@ with open(os.path.join(args.diagnostics_dir, 'indices_stats.json')) as f:
 def makeDiskSizeTree():
   rootNode = {'label': 'cluster', 'children': [], 'x': 0, 'y': 0, 'dx': 1000, 'dy': 800}
   for nodeId, nodeContents in nodes.items():
-    nodeNode = {'label': nodes[nodeId]['name'], 'children': []}
-    rootNode['children'].append(nodeNode)
-    for path, pathContents in nodeContents['shards_by_path'].items():
-      pathNode = {'label': path, 'children': [], 'total': nodeContents['disk_bytes_by_path'][path]}
-      nodeNode['children'].append(pathNode)
-      for shardName, shardDetails in pathContents.items():
-        shardComponents = []
-        if shardDetails['store'] > 0:
-          shardComponents.append({ 'label': 'store'
-                                 , 'color': shardDetails['color']
-                                 , 'total': shardDetails['store']
-                                 })
-        if shardDetails['translog'] > 0:
-          shardComponents.append({ 'label': 'translog'
-                                 , 'color': shardDetails['color']
-                                 , 'total': shardDetails['translog']
-                                 })
-        pathNode['children'].append(
-          { 'label': shardName
-          , 'children': shardComponents
-          })
+    if 'shards_by_path' in nodeContents:
+      nodeNode = {'label': nodes[nodeId]['name'], 'children': []}
+      rootNode['children'].append(nodeNode)
+      for path, pathContents in nodeContents['shards_by_path'].items():
+        pathNode = {'label': path, 'children': [], 'total': nodeContents['disk_bytes_by_path'][path]}
+        nodeNode['children'].append(pathNode)
+        for shardName, shardDetails in pathContents.items():
+          shardComponents = []
+          if shardDetails['store'] > 0:
+            shardComponents.append({ 'label': 'store'
+                                   , 'color': shardDetails['color']
+                                   , 'total': shardDetails['store']
+                                   })
+          if shardDetails['translog'] > 0:
+            shardComponents.append({ 'label': 'translog'
+                                   , 'color': shardDetails['color']
+                                   , 'total': shardDetails['translog']
+                                   })
+          pathNode['children'].append(
+            { 'label': shardName
+            , 'children': shardComponents
+            })
   return rootNode
 
 def makeSegmentMemoryTree():
   rootNode = {'label': 'cluster', 'children': [], 'x': 0, 'y': 0, 'dx': 1000, 'dy': 800}
   for nodeId, nodeContents in nodes.items():
-    nodeNode = {'label': nodes[nodeId]['name'], 'children': [], 'total': nodeContents['heap_max_in_bytes']}
-    rootNode['children'].append(nodeNode)
-    for path, pathContents in nodeContents['shards_by_path'].items():
-      for shardName, shardDetails in pathContents.items():
-        if shardDetails['segment_memory'] > 0:
-          nodeNode['children'].append(
-            { 'label': shardName
-            , 'color': shardDetails['color']
-            , 'total': shardDetails['segment_memory']
-            })
+    if 'shards_by_path' in nodeContents:
+      nodeNode = {'label': nodes[nodeId]['name'], 'children': [], 'total': nodeContents['heap_max_in_bytes']}
+      rootNode['children'].append(nodeNode)
+      for path, pathContents in nodeContents['shards_by_path'].items():
+        for shardName, shardDetails in pathContents.items():
+          if shardDetails['segment_memory'] > 0:
+            nodeNode['children'].append(
+              { 'label': shardName
+              , 'color': shardDetails['color']
+              , 'total': shardDetails['segment_memory']
+              })
   return rootNode
 
 def calculateSizes(node):
