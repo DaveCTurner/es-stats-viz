@@ -195,9 +195,9 @@ def renderSvg(rootNode, filename):
 diskSizeTree = makeDiskSizeTree()
 calculateSizes(diskSizeTree)
 calculatePositions(diskSizeTree, 2)
-renderSvg(diskSizeTree, 'diskSize.svg')
+renderSvg(diskSizeTree, os.path.join(args.diagnostics_dir, 'diskSize.svg'))
 
 segmentMemoryTree = makeSegmentMemoryTree()
 calculateSizes(segmentMemoryTree)
 calculatePositions(segmentMemoryTree, 1)
-renderSvg(segmentMemoryTree, 'segmentMemory.svg')
+renderSvg(segmentMemoryTree, os.path.join(args.diagnostics_dir, 'segmentMemory.svg'))
