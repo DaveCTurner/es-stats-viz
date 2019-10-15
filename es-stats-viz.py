@@ -191,6 +191,7 @@ def renderSvg(rootNode, filename):
 
   renderTree(rootNode)
   d.saveas(filename)
+  print('file://' + os.path.abspath(filename))
 
 diskSizeTree = makeDiskSizeTree()
 calculateSizes(diskSizeTree)
